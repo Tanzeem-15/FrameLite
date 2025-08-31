@@ -1,29 +1,11 @@
 export const videos = [
   {
-    id: 'bigbuckbunny',
-    title: "CAZZ's First Project / Big Buck Bunny",
-    source: require('../../assets/videos/bigbuckbunny.mp4'),
+    id: 'nike',
+    title: "Nike",
+    source: require('../../assets/videos/sample.mp4'),
     local: true,
-    duration: '00:09:56',
-    size: '84.5 MB',
-    thumbnail: require('../../assets/images/big_buck_bunny.jpg'),
-  },
-  {
-    id: 'sintel',
-    title: 'Sintel — Open Movie',
-    source: require('../../assets/videos/sintel.mp4'),
-    local: true,
-    duration: '00:14:48',
-    size: '45 MB',
-    thumbnail: require('../../assets/images/sintel.jpg'),
-  },
-  {
-    id: 'elephantsdream',
-    title: 'Elephants Dream',
-    source: require('../../assets/videos/elephantsdream.mp4'),
-    local: true,
-    duration: '00:10:53',
-    size: '59.5 MB',
-    thumbnail: require('../../assets/images/elephants.jpg'),
-  },
+    duration: '00:00:13',
+    size: '1.74 MB',
+    thumbnail: require('../../assets/images/sample.png'),
+  }
 ];

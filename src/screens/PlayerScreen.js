@@ -239,7 +239,7 @@ export default function PlayerScreen({ route }) {
                     </View>
 
                     {/* <View style={styles.replyBubble}> */}
-                      <Text style={styles.replyBubbleText}>{r.text}</Text>
+                    <Text style={styles.replyBubbleText}>{r.text}</Text>
                     {/* </View> */}
                   </View>
                 </View>
@@ -289,6 +289,10 @@ export default function PlayerScreen({ route }) {
         }}
         onSeek={() => setEnded(false)}
         onEnd={() => { setEnded(true); setPaused(true); }}
+        onError={(e) => {
+          const info = e?.error || e;
+          console.log('RNVideo onError:', info);
+        }}
       />
 
       <DrawingCanvas
