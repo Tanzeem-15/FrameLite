@@ -1,3 +1,4 @@
+// src/components/DrawingCanvas.js
 import React, {
   useEffect,
   useImperativeHandle,
@@ -9,36 +10,67 @@ import React, {
 import { View, PanResponder } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 
-function isValidStroke(s) {
-  return s && typeof s === 'object' && Array.isArray(s.points);
-}
-function toPath(points) {
-  if (!points || points.length === 0) return '';
+/** ---------- helpers ---------- */
+const isNum = (n) => typeof n === 'number' && Number.isFinite(n);
+const isValidPoint = (pt) =>
+  pt &&
+  typeof pt === 'object' &&
+  isNum(pt.nx) &&
+  isNum(pt.ny) &&
+  pt.nx >= 0 &&
+  pt.ny >= 0;
+
+const normalizeStroke = (s, fallbackColor) => {
+  if (!s || typeof s !== 'object') return null;
+  const pts = Array.isArray(s.points) ? s.points.filter(isValidPoint) : [];
+  if (!pts.length) return null;
+  const color = typeof s.color === 'string' && s.color ? s.color : fallbackColor || '#ff4757';
+  return { color, points: pts };
+};
+
+const coerceStrokeArray = (arr, fallbackColor) => {
+  if (!Array.isArray(arr)) return [];
+  const out = [];
+  for (const s of arr) {
+    const n = normalizeStroke(s, fallbackColor);
+    if (n) out.push(n);
+  }
+  return out;
+};
+
+const toPath = (points) => {
+  if (!Array.isArray(points) || points.length === 0) return '';
   const [first, ...rest] = points;
   let d = `M ${first.x} ${first.y}`;
   for (const p of rest) d += ` L ${p.x} ${p.y}`;
   return d;
-}
+};
 
+/** ---------- component ---------- */
 const DrawingCanvas = forwardRef(function DrawingCanvas(
   {
     color = '#ff4757',
     width = 3,
     active = false,
-    initial = [],            // default to array
-    onChange,                // (paths) => void
+    initial = undefined, // can be undefined/null/array; we’ll sanitize
+    onChange,            // (paths) => void
   },
   ref
 ) {
   const [size, setSize] = useState({ w: 1, h: 1 });
-  const [paths, setPaths] = useState(Array.isArray(initial) ? initial : []);
+
+  // Persisted strokes (sanitized)
+  const [paths, setPaths] = useState(() => coerceStrokeArray(initial, color));
+
+  // Live stroke while drawing
   const [draftStroke, setDraftStroke] = useState(null); // {color, points:[{nx,ny}]}
 
-  // keep in sync if parent replaces initial (e.g., load from storage)
+  // Sync when parent replaces initial
   useEffect(() => {
-    setPaths(Array.isArray(initial) ? initial : []);
-  }, [initial]);
+    setPaths(coerceStrokeArray(initial, color));
+  }, [initial, color]);
 
+  // Expose public API
   useImperativeHandle(
     ref,
     () => ({
@@ -49,23 +81,23 @@ const DrawingCanvas = forwardRef(function DrawingCanvas(
       },
       getPaths: () => paths,
       setPaths: (p) => {
-        const safe = Array.isArray(p) ? p.filter(isValidStroke) : [];
+        const safe = coerceStrokeArray(p, color);
         setPaths(safe);
         onChange && onChange(safe);
       },
     }),
-    [paths, onChange]
+    [paths, onChange, color]
   );
 
-  // scale normalized points -> view coords
+  // Scale normalized [{nx,ny}] -> absolute [{x,y}]
   const scaledPaths = useMemo(() => {
-    const safe = (Array.isArray(paths) ? paths : []).filter(isValidStroke);
+    const safe = coerceStrokeArray(paths, color);
     return safe.map((s) => ({
       color: s.color || color,
       d: toPath(
         s.points.map((pt) => ({
-          x: (pt.nx || 0) * size.w,
-          y: (pt.ny || 0) * size.h,
+          x: pt.nx * (size.w || 1),
+          y: pt.ny * (size.h || 1),
         }))
       ),
     }));
@@ -75,12 +107,13 @@ const DrawingCanvas = forwardRef(function DrawingCanvas(
     if (!draftStroke || !Array.isArray(draftStroke.points)) return '';
     return toPath(
       draftStroke.points.map((pt) => ({
-        x: (pt.nx || 0) * size.w,
-        y: (pt.ny || 0) * size.h,
+        x: (pt.nx || 0) * (size.w || 1),
+        y: (pt.ny || 0) * (size.h || 1),
       }))
     );
   }, [draftStroke, size]);
 
+  // Input handling
   const panResponder = useMemo(
     () =>
       PanResponder.create({
@@ -91,7 +124,7 @@ const DrawingCanvas = forwardRef(function DrawingCanvas(
           const { locationX, locationY } = e.nativeEvent;
           setDraftStroke({
             color,
-            points: [{ nx: locationX / size.w, ny: locationY / size.h }],
+            points: [{ nx: (locationX || 0) / (size.w || 1), ny: (locationY || 0) / (size.h || 1) }],
           });
         },
         onPanResponderMove: (e) => {
@@ -99,25 +132,25 @@ const DrawingCanvas = forwardRef(function DrawingCanvas(
           const { locationX, locationY } = e.nativeEvent;
           setDraftStroke((prev) => {
             if (!prev) return null;
-            const next = { ...prev, points: prev.points.slice() };
-            next.points.push({ nx: locationX / size.w, ny: locationY / size.h });
-            return next;
+            const pts = Array.isArray(prev.points) ? prev.points.slice() : [];
+            pts.push({ nx: (locationX || 0) / (size.w || 1), ny: (locationY || 0) / (size.h || 1) });
+            return { ...prev, points: pts };
           });
         },
         onPanResponderRelease: () => {
           if (!active) return;
           setPaths((prev) => {
-            const safePrev = Array.isArray(prev) ? prev.filter(isValidStroke) : [];
+            const safePrev = coerceStrokeArray(prev, color);
             const finalized =
-              draftStroke && isValidStroke(draftStroke) ? [...safePrev, draftStroke] : safePrev;
+              draftStroke && normalizeStroke(draftStroke, color)
+                ? [...safePrev, normalizeStroke(draftStroke, color)]
+                : safePrev;
             onChange && onChange(finalized);
             return finalized;
           });
           setDraftStroke(null);
         },
-        onPanResponderTerminate: () => {
-          setDraftStroke(null);
-        },
+        onPanResponderTerminate: () => setDraftStroke(null),
       }),
     [active, color, size, draftStroke, onChange]
   );
@@ -126,7 +159,7 @@ const DrawingCanvas = forwardRef(function DrawingCanvas(
     <View
       {...panResponder.panHandlers}
       onLayout={(e) => {
-        const { width, height } = e.nativeEvent.layout;
+        const { width, height } = e.nativeEvent.layout || {};
         // guard against zero to avoid NaN
         setSize({ w: width || 1, h: height || 1 });
       }}
