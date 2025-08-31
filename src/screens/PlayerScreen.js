@@ -185,7 +185,7 @@ export default function PlayerScreen({ route }) {
         />
         <View style={{ flex: 1 }}>
           <View style={styles.cHeader}>
-            <Text style={styles.cName}>CAZZ INC</Text>
+            <Text style={styles.cName}>Noah Green</Text>
             <Text style={styles.cSubTime}>
               {new Date(item.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
             </Text>
@@ -222,9 +222,25 @@ export default function PlayerScreen({ route }) {
             <View style={styles.repliesWrap}>
               {item.replies.map((r) => (
                 <View key={r.id} style={styles.replyBubbleRow}>
-                  <View style={[styles.avatarDot, { width: 18, height: 18 }]} />
-                  <View style={styles.replyBubble}>
-                    <Text style={styles.replyBubbleText}>{r.text}</Text>
+                  <Image
+                    source={require('../../assets/images/avatar2.png')}
+                    style={[styles.avatar, { width: 20, height: 20 }]}
+                  />
+
+                  <View style={{ flex: 1 }}>
+                    <View style={styles.replyHeader}>
+                      <Text style={styles.replyName}>Amina Grace</Text>
+                      <Text style={styles.replyTime}>
+                        {new Date(r.createdAt).toLocaleTimeString([], {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
+                      </Text>
+                    </View>
+
+                    {/* <View style={styles.replyBubble}> */}
+                      <Text style={styles.replyBubbleText}>{r.text}</Text>
+                    {/* </View> */}
                   </View>
                 </View>
               ))}
@@ -599,7 +615,22 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: theme.c.border,
   },
-  replyBubbleText: { color: theme.c.text },
+  replyBubbleText: { color: theme.c.subtext },
+  replyHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 2,
+  },
+  replyName: {
+    fontWeight: '600',
+    color: theme.c.text,
+    marginRight: 6,
+    fontSize: 13,
+  },
+  replyTime: {
+    fontSize: 11,
+    color: theme.c.subtext,
+  },
 
   replyInputRow: { marginTop: 8, flexDirection: 'row', alignItems: 'center', gap: 8 },
   smallPrimaryBtn: {
