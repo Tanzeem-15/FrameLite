@@ -1,4 +1,3 @@
-// src/components/DrawingCanvas.js
 import React, {
   useEffect,
   useImperativeHandle,
@@ -10,7 +9,6 @@ import React, {
 import { View, PanResponder } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 
-/** ---------- helpers ---------- */
 const isNum = (n) => typeof n === 'number' && Number.isFinite(n);
 const isValidPoint = (pt) =>
   pt &&
@@ -46,31 +44,25 @@ const toPath = (points) => {
   return d;
 };
 
-/** ---------- component ---------- */
 const DrawingCanvas = forwardRef(function DrawingCanvas(
   {
     color = '#ff4757',
     width = 3,
     active = false,
-    initial = undefined, // can be undefined/null/array; we’ll sanitize
-    onChange,            // (paths) => void
+    initial = undefined,
+    onChange,
   },
   ref
 ) {
   const [size, setSize] = useState({ w: 1, h: 1 });
 
-  // Persisted strokes (sanitized)
   const [paths, setPaths] = useState(() => coerceStrokeArray(initial, color));
+  const [draftStroke, setDraftStroke] = useState(null);
 
-  // Live stroke while drawing
-  const [draftStroke, setDraftStroke] = useState(null); // {color, points:[{nx,ny}]}
-
-  // Sync when parent replaces initial
   useEffect(() => {
     setPaths(coerceStrokeArray(initial, color));
   }, [initial, color]);
 
-  // Expose public API
   useImperativeHandle(
     ref,
     () => ({
@@ -89,7 +81,6 @@ const DrawingCanvas = forwardRef(function DrawingCanvas(
     [paths, onChange, color]
   );
 
-  // Scale normalized [{nx,ny}] -> absolute [{x,y}]
   const scaledPaths = useMemo(() => {
     const safe = coerceStrokeArray(paths, color);
     return safe.map((s) => ({
@@ -113,7 +104,6 @@ const DrawingCanvas = forwardRef(function DrawingCanvas(
     );
   }, [draftStroke, size]);
 
-  // Input handling
   const panResponder = useMemo(
     () =>
       PanResponder.create({
@@ -160,7 +150,6 @@ const DrawingCanvas = forwardRef(function DrawingCanvas(
       {...panResponder.panHandlers}
       onLayout={(e) => {
         const { width, height } = e.nativeEvent.layout || {};
-        // guard against zero to avoid NaN
         setSize({ w: width || 1, h: height || 1 });
       }}
       pointerEvents={active ? 'auto' : 'none'}

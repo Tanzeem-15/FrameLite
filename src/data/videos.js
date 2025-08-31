@@ -4,7 +4,7 @@ export const videos = [
     title: "CAZZ's First Project / Big Buck Bunny",
     source: require('../../assets/videos/bigbuckbunny.mp4'),
     local: true,
-    duration: '00:10:34',
+    duration: '00:09:56',
     size: '84.5 MB',
     tag: 'Public',
     thumbnail: require('../../assets/images/big_buck_bunny.jpg'),

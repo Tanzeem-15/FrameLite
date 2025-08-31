@@ -1,7 +1,7 @@
 import React, { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import { Modal, View, Text, Pressable, StatusBar, StyleSheet, Platform } from 'react-native';
 import Video from 'react-native-video';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons'; // ← swap to emoji if needed
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { theme } from '../theme';
 
 const toTime = (secs = 0) => {
@@ -48,8 +48,6 @@ const FullscreenVideoModal = forwardRef(function FullscreenVideoModal(
       hardwareAccelerated
       presentationStyle={Platform.OS === 'ios' ? 'fullScreen' : undefined}
     >
-      {/* Properly cover the status bar area */}
-      {/* <StatusBar hidden translucent backgroundColor="transparent" /> */}
       <View style={{ flex: 1, backgroundColor: '#000' }}>
         <Video
           ref={videoRef}
@@ -69,13 +67,9 @@ const FullscreenVideoModal = forwardRef(function FullscreenVideoModal(
           onEnd={onEnd}
         />
 
-        {/* control bar */}
         <View style={styles.controlBar}>
           <Pressable onPress={onPlayPause} style={styles.ctrlBtn} hitSlop={8}>
             <Icon name={ended ? 'replay' : (paused ? 'play' : 'pause')} size={18} color="#fff" />
-            {/* or emoji:
-                <Text style={styles.ctrlIcon}>{ended ? '↺' : (paused ? '▶' : '⏸')}</Text>
-            */}
           </Pressable>
           <View style={{ width: 8 }} />
           <Text style={styles.ctrlTime}>{toTime(progress)}</Text>
@@ -83,7 +77,6 @@ const FullscreenVideoModal = forwardRef(function FullscreenVideoModal(
           <View style={{ flex: 1 }} />
           <Pressable style={styles.ctrlBtn} hitSlop={8} onPress={onRequestClose}>
             <Icon name="fullscreen-exit" size={18} color="#fff" />
-            {/* or emoji: <Text style={styles.ctrlIcon}>⤢</Text> */}
           </Pressable>
         </View>
       </View>
@@ -106,7 +99,6 @@ const styles = StyleSheet.create({
   },
   ctrlBtn: { paddingHorizontal: 6, paddingVertical: 4 },
   ctrlTime: { color: '#fff', fontVariant: ['tabular-nums'], fontSize: 12 },
-  // ctrlIcon: { color: '#fff', fontSize: 16 }, // if using emoji
 });
 
 export default FullscreenVideoModal;

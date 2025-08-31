@@ -2,16 +2,9 @@ import React from 'react';
 import { View, Text, StyleSheet, Platform, StatusBar } from 'react-native';
 import { theme } from '../theme';
 
-/**
- * Dark header that matches the app theme.
- * - Covers the status bar area (Android + iOS).
- * - Centers the title.
- * - Optional left/right slots via props.
- */
 export default function Header({ title = '', Left = null, Right = null }) {
   return (
     <View style={styles.wrap}>
-      {/* Make status bar match the header */}
       <StatusBar
         translucent
         backgroundColor={theme.c.bg}
@@ -30,7 +23,7 @@ export default function Header({ title = '', Left = null, Right = null }) {
 }
 
 const STATUSBAR_PAD = Platform.select({
-  ios: 48,          // safe-area-ish; works for most notches
+  ios: 48,
   android: StatusBar.currentHeight ? StatusBar.currentHeight : 24,
 });
 
@@ -47,7 +40,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   side: {
-    width: 44,             // space for optional icon/button
+    width: 44,
     alignItems: 'center',
     justifyContent: 'center',
   },

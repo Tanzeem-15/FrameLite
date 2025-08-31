@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { View, Text, ImageBackground, StyleSheet } from 'react-native';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons'; // if not installed, replace with the emoji line noted below
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { theme } from '../theme';
 
 const FALLBACK_THUMB =
@@ -14,10 +14,8 @@ export default function Thumbnail({
 }) {
   const [failed, setFailed] = useState(false);
 
-  // Ensure https and provide a fallback when missing/broken
   const sourceUri = useMemo(() => {
     if (!uri || failed) return FALLBACK_THUMB;
-    // Force https if someone passes http
     if (typeof uri === 'string' && uri.startsWith('http://')) {
       return uri.replace('http://', 'https://');
     }
@@ -33,9 +31,7 @@ export default function Thumbnail({
       onError={() => setFailed(true)}
     >
       <View style={styles.badge}>
-        {/* If you don’t use vector icons, comment the next line and uncomment the emoji line */}
         <Icon name="play" size={18} color="#fff" />
-        {/* <Text style={styles.playEmoji}>▶</Text> */}
         {duration ? <Text style={styles.duration}>{duration}</Text> : null}
       </View>
     </ImageBackground>

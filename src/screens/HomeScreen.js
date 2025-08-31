@@ -6,12 +6,13 @@ import {
   FlatList,
   Pressable,
 } from 'react-native';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons'; // swap to emoji if you aren't using this
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import Header from '../components/Header';
 import { theme } from '../theme';
 import { videos } from '../data/videos';
 import Thumbnail from '../components/Thumbnail';
 import { loadComments } from '../storage';
+import { timeAgo } from '../utils/time';
 
 export default function HomeScreen({ navigation }) {
   const data = useMemo(() => videos, []);
@@ -30,7 +31,6 @@ export default function HomeScreen({ navigation }) {
           const arr = Array.isArray(list) ? list : [];
           counts[v.id] = arr.length;
 
-          // compute last activity from comments and replies
           let ts = 0;
           for (const c of arr) {
             ts = Math.max(ts, c.createdAt || 0);
@@ -64,7 +64,7 @@ export default function HomeScreen({ navigation }) {
     const count = commentCounts[item.id] ?? 0;
     const updatedAgo = lastActivity[item.id]
       ? timeAgo(lastActivity[item.id])
-      : item.updated || ''; // fallback to seed label
+      : item.updated || '';
 
     return (
       <Pressable style={styles.card} onPress={() => openVideo(item)}>
@@ -81,7 +81,6 @@ export default function HomeScreen({ navigation }) {
 
             <View style={styles.meta}>
               <Icon name="comment-outline" size={14} color={theme.c.subtext} />
-              {/* or emoji: <Text style={styles.metaText}>💬</Text> */}
               <Text style={styles.metaText}>
                 {count} {count === 1 ? 'comment' : 'comments'}
               </Text>
@@ -89,7 +88,6 @@ export default function HomeScreen({ navigation }) {
 
             <View style={styles.meta}>
               <Icon name="calendar-clock" size={14} color={theme.c.subtext} />
-              {/* or emoji: <Text style={styles.metaText}>🗓️</Text> */}
               <Text style={styles.metaText}>{updatedAgo || "--"}</Text>
             </View>
           </View>
@@ -120,22 +118,6 @@ export default function HomeScreen({ navigation }) {
       />
     </View>
   );
-}
-
-/** Pretty "time ago" for last activity */
-function timeAgo(ts) {
-  const s = Math.max(0, Math.floor((Date.now() - ts) / 1000));
-  if (s < 60) return 'just now';
-  const m = Math.floor(s / 60);
-  if (m < 60) return `${m}m`;
-  const h = Math.floor(m / 60);
-  if (h < 24) return `${h}h`;
-  const d = Math.floor(h / 24);
-  if (d < 7) return `${d}d`;
-  const w = Math.floor(d / 7);
-  if (w < 4) return `${w}w`;
-  const mo = Math.floor(d / 30);
-  return `${mo}mo`;
 }
 
 const styles = StyleSheet.create({

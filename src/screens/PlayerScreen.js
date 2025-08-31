@@ -21,50 +21,34 @@ import { loadComments, saveComments } from '../storage';
 import { toTime } from '../utils/time';
 import { theme } from '../theme';
 
-/**
- * Comment shape:
- * {
- *   id: string,
- *   time: number,
- *   text: string,
- *   createdAt: number,
- *   replies: Array<{ id: string, text: string, createdAt: number }>,
- *   drawing?: Array<{ color: string, points: Array<{ nx:number, ny:number }> }>
- * }
- */
-
 export default function PlayerScreen({ route }) {
   const { width, height } = useWindowDimensions();
-  const [isLandscape, setIsLandscape] = useState(width > height);
+  const isLandscape = width > height;
 
   const { videoTitle, source, videoId } = route.params;
 
-  // video
   const videoRef = useRef(null);
   const fsVideoRef = useRef(null);
   const [paused, setPaused] = useState(false);
   const [ended, setEnded] = useState(false);
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
+  const lastUiUpdateRef = useRef(0);
 
-  // fullscreen
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [fsInitialSeek, setFsInitialSeek] = useState(0);
 
-  // comments
   const [comments, setComments] = useState([]);
   const [commentText, setCommentText] = useState('');
   const [replyOpenFor, setReplyOpenFor] = useState(null);
   const [replyText, setReplyText] = useState('');
   const [highlightId, setHighlightId] = useState(null);
 
-  // drawing (authoring)
   const drawRef = useRef(null);
   const [drawActive, setDrawActive] = useState(false);
   const [penColor, setPenColor] = useState('#FFFFFF');
   const [pendingDrawing, setPendingDrawing] = useState(null);
 
-  // drawing (viewing)
   const [visibleDrawingCommentId, setVisibleDrawingCommentId] = useState(null);
   const [displayPaths, setDisplayPaths] = useState([]);
 
@@ -144,14 +128,17 @@ export default function PlayerScreen({ route }) {
     }
 
     await saveComments(videoId, next);
+    inputRef.current?.blur?.();
   };
 
   const onSeekTo = (sec, id) => {
     videoRef.current?.seek?.(sec);
     fsVideoRef.current?.seek?.(sec);
     setProgress(sec);
-    setHighlightId(id);
-    setTimeout(() => setHighlightId(null), 1500);
+    if (id) {
+      setHighlightId(id);
+      setTimeout(() => setHighlightId(null), 1500);
+    }
   };
 
   const onToggleCommentDrawing = (comment) => {
@@ -193,7 +180,7 @@ export default function PlayerScreen({ route }) {
         style={[styles.commentRow, isHighlighted && styles.commentRowActive]}
       >
         <Image
-          source={require('../../assets/images/avatar.png')}  // <-- replace with your file path
+          source={require('../../assets/images/avatar.png')}
           style={styles.avatar}
         />
         <View style={{ flex: 1 }}>
@@ -263,72 +250,6 @@ export default function PlayerScreen({ route }) {
     );
   };
 
-  /** ---------- Right pane header (tools + composer) ---------- */
-  const RightPaneHeader = () => (
-    <View>
-      {/* Tools row */}
-      <View style={styles.toolsRow}>
-        <View style={styles.tsPillDark}>
-          <Text style={styles.tsPillDarkText}>{toTime(progress)}</Text>
-        </View>
-
-        <Pressable
-          onPress={onToggleDraw}
-          style={[styles.pencilBtn, drawActive && styles.pencilBtnActive]}
-          accessibilityLabel="Toggle drawing"
-        >
-          <Icon name="pencil" size={18} color={drawActive ? theme.c.purple : theme.c.text} />
-        </Pressable>
-
-        <View style={styles.colorsRow}>
-          {['#FFFFFF', '#6C5CE7', '#22C55E', '#F4D13D', '#EF4444'].map((c) => (
-            <Pressable
-              key={c}
-              onPress={() => setPenColor(c)}
-              style={[
-                styles.colorSquare,
-                { backgroundColor: c, borderColor: penColor === c ? '#fff' : theme.c.border, borderWidth: 1.5 },
-              ]}
-            />
-          ))}
-        </View>
-
-        {drawActive && (
-          <>
-            <Pressable style={styles.toolGhostBtn} onPress={onSaveDrawing}>
-              <Text style={styles.toolGhostBtnText}>Save</Text>
-            </Pressable>
-            <Pressable style={styles.toolGhostBtn} onPress={onClearAuthoring}>
-              <Text style={styles.toolGhostBtnText}>Clear</Text>
-            </Pressable>
-          </>
-        )}
-      </View>
-
-      {/* Input row */}
-      <View style={[styles.inputRow, { paddingTop: 4, paddingBottom: 12 }]}>
-        {pendingDrawing ? (
-          <View style={styles.sketchBadge}>
-            <Icon name="gesture" size={16} color={theme.c.lime} />
-          </View>
-        ) : null}
-
-        <TextInput
-          ref={inputRef}
-          value={commentText}
-          onChangeText={setCommentText}
-          placeholder={pendingDrawing ? 'Describe your drawing…' : 'Leave your comment…'}
-          placeholderTextColor={theme.c.muted}
-          style={[styles.input, { flex: 1 }]}
-        />
-        <Pressable style={styles.primaryBtn} onPress={onAddComment}>
-          <Text style={styles.primaryBtnText}>Comment</Text>
-        </Pressable>
-      </View>
-    </View>
-  );
-
-  /** ------- UI blocks ------- */
   const VideoBlock = (
     <View style={[styles.playerWrap, isLandscape && styles.playerLandscape]}>
       <Video
@@ -339,7 +260,11 @@ export default function PlayerScreen({ route }) {
         style={[styles.video, isLandscape && styles.videoLandscape]}
         onProgress={(p) => {
           const t = p.currentTime || 0;
-          setProgress(t);
+          const now = Date.now();
+          if (now - lastUiUpdateRef.current > 150) {
+            lastUiUpdateRef.current = now;
+            setProgress(t);
+          }
           if (duration && t >= duration - 0.1) setEnded(true);
         }}
         onLoad={(m) => {
@@ -350,17 +275,14 @@ export default function PlayerScreen({ route }) {
         onEnd={() => { setEnded(true); setPaused(true); }}
       />
 
-      {/* Overlay (authoring OR viewing) */}
       <DrawingCanvas
         ref={drawRef}
         active={drawActive}
         color={penColor}
         width={3}
         initial={drawActive ? [] : displayPaths}
-        onChange={() => { }}
       />
 
-      {/* Controls over video */}
       <View style={styles.controlBar}>
         <Pressable onPress={handlePlayPause} style={styles.ctrlBtn} hitSlop={8}>
           <Icon name={ended ? 'replay' : (paused ? 'play' : 'pause')} size={18} color="#fff" />
@@ -381,39 +303,95 @@ export default function PlayerScreen({ route }) {
 
   return (
     <KeyboardAvoidingView
-      onLayout={(e) => {
-        const { width, height } = e.nativeEvent.layout;
-        setIsLandscape(width > height)
-      }}
       style={{ flex: 1, backgroundColor: theme.c.bg }}
-      behavior={Platform.select({ ios: 'padding', android: undefined })}
+      behavior={Platform.select({
+        ios: isLandscape ? undefined : 'padding',
+        android: undefined,
+      })}
     >
       <View style={styles.container}>
         <Header title={videoTitle} />
 
-        <View style={[styles.body, isLandscape && styles.bodyLandscape]}>
-          {/* LEFT: Video only */}
+        <View key={isLandscape ? 'land' : 'port'} style={[styles.body, isLandscape && styles.bodyLandscape]}>
           <View style={[styles.leftPane, isLandscape && styles.leftPaneLand]}>
             {VideoBlock}
           </View>
 
-          {/* RIGHT: tools + input + list (scrolled together) */}
           <View style={[styles.rightPane, isLandscape && styles.rightPaneLand]}>
+            <View style={{ paddingHorizontal: 14, paddingBottom: 12 }}>
+              <View style={styles.toolsRow}>
+                <View style={styles.tsPillDark}>
+                  <Text style={styles.tsPillDarkText}>{toTime(progress)}</Text>
+                </View>
+
+                <Pressable
+                  onPress={onToggleDraw}
+                  style={[styles.pencilBtn, drawActive && styles.pencilBtnActive]}
+                  accessibilityLabel="Toggle drawing"
+                >
+                  <Icon name="pencil" size={18} color={drawActive ? theme.c.purple : theme.c.text} />
+                </Pressable>
+
+                <View style={styles.colorsRow}>
+                  {['#FFFFFF', '#6C5CE7', '#22C55E', '#F4D13D', '#EF4444'].map((c) => (
+                    <Pressable
+                      key={c}
+                      onPress={() => setPenColor(c)}
+                      style={[
+                        styles.colorSquare,
+                        { backgroundColor: c, borderColor: penColor === c ? '#fff' : theme.c.border, borderWidth: 1.5 },
+                      ]}
+                    />
+                  ))}
+                </View>
+
+                {drawActive && (
+                  <>
+                    <Pressable style={styles.toolGhostBtn} onPress={onSaveDrawing}>
+                      <Text style={styles.toolGhostBtnText}>Save</Text>
+                    </Pressable>
+                    <Pressable style={styles.toolGhostBtn} onPress={onClearAuthoring}>
+                      <Text style={styles.toolGhostBtnText}>Clear</Text>
+                    </Pressable>
+                  </>
+                )}
+              </View>
+
+              <View style={[styles.inputRow, { paddingTop: 4 }]}>
+                {pendingDrawing ? (
+                  <View style={styles.sketchBadge}>
+                    <Icon name="gesture" size={16} color={theme.c.lime} />
+                  </View>
+                ) : null}
+
+                <TextInput
+                  ref={inputRef}
+                  value={commentText}
+                  onChangeText={setCommentText}
+                  placeholder={pendingDrawing ? 'Describe your drawing…' : 'Leave your comment…'}
+                  placeholderTextColor={theme.c.muted}
+                  style={[styles.input, { flex: 1 }]}
+                />
+                <Pressable style={styles.primaryBtn} onPress={onAddComment}>
+                  <Text style={styles.primaryBtnText}>Comment</Text>
+                </Pressable>
+              </View>
+            </View>
+
             <FlatList
               data={comments}
               keyExtractor={keyExtractor}
               contentContainerStyle={{ paddingHorizontal: 14, paddingBottom: 20 }}
-              ListHeaderComponent={RightPaneHeader}
               ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
               renderItem={renderComment}
-              keyboardShouldPersistTaps="handled"
+              keyboardShouldPersistTaps="always"
+              keyboardDismissMode="none"
               showsVerticalScrollIndicator={false}
             />
           </View>
         </View>
       </View>
 
-      {/* Fullscreen Modal */}
       <FullscreenVideoModal
         ref={fsVideoRef}
         visible={isFullscreen}
@@ -424,7 +402,11 @@ export default function PlayerScreen({ route }) {
         initialSeek={fsInitialSeek}
         ended={ended}
         onUpdateProgress={(t) => {
-          setProgress(t);
+          const now = Date.now();
+          if (now - lastUiUpdateRef.current > 150) {
+            lastUiUpdateRef.current = now;
+            setProgress(t);
+          }
           if (duration && t >= duration - 0.1) setEnded(true);
         }}
         onLoaded={(dur) => {
@@ -448,19 +430,16 @@ const styles = StyleSheet.create({
 
   leftPane: {},
   leftPaneLand: {
-    flex: 1,                       // take half
+    flex: 1,
     borderRightWidth: 1,
     borderRightColor: theme.c.border,
   },
 
-  rightPane: {},
-  rightPaneLand: {
-    flex: 1,                       // take half
-  },
+  rightPane: { flex: 1 },
+  rightPaneLand: { flex: 1 },
 
-  /* Video block */
   playerWrap: { width: '100%', aspectRatio: 16 / 9, backgroundColor: '#000' },
-  playerLandscape: { width: '100%', height: '100%', aspectRatio: undefined }, // fill left column
+  playerLandscape: { width: '100%', height: '100%', aspectRatio: undefined },
   video: { position: 'absolute', width: '100%', height: '100%' },
   videoLandscape: {},
 
@@ -486,7 +465,6 @@ const styles = StyleSheet.create({
   },
   pillText: { color: theme.c.text, fontVariant: ['tabular-nums'], fontSize: 12 },
 
-  /* Tools row + input */
   toolsRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -572,7 +550,6 @@ const styles = StyleSheet.create({
   },
   sketchBadgeText: { color: theme.c.text, fontWeight: '600', fontSize: 12 },
 
-  /* Comments */
   commentRow: {
     flexDirection: 'row',
     padding: 12,
@@ -582,7 +559,14 @@ const styles = StyleSheet.create({
     backgroundColor: theme.c.card,
   },
   commentRowActive: { backgroundColor: '#16231A', borderColor: '#244229' },
-  avatarDot: { width: 26, height: 26, borderRadius: 13, backgroundColor: theme.c.cardAlt, marginRight: 10, marginTop: 2 },
+  avatarDot: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: theme.c.cardAlt,
+    marginRight: 10,
+    marginTop: 2,
+  },
 
   cHeader: { flexDirection: 'row', alignItems: 'center' },
   cName: { fontWeight: '700', color: theme.c.text },
@@ -618,13 +602,18 @@ const styles = StyleSheet.create({
   replyBubbleText: { color: theme.c.text },
 
   replyInputRow: { marginTop: 8, flexDirection: 'row', alignItems: 'center', gap: 8 },
-  smallPrimaryBtn: { backgroundColor: theme.c.purple, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8 },
+  smallPrimaryBtn: {
+    backgroundColor: theme.c.purple,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
   smallPrimaryBtnText: { color: '#fff', fontWeight: '700', fontSize: 12 },
 
   avatar: {
-  width: 32,
-  height: 32,
-  borderRadius: 16,
-  marginRight: 10,
-}
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    marginRight: 10,
+  },
 });
