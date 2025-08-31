@@ -73,26 +73,31 @@ export default function HomeScreen({ navigation }) {
         <View style={styles.cardBody}>
           <Text numberOfLines={1} style={styles.title}>{item.title}</Text>
 
-          <View style={styles.metaRow}>
-            <View style={styles.meta}>
-              <View style={styles.dot} />
-              <Text style={styles.metaText}>{item.size}</Text>
-            </View>
+          <View style={styles.metaRowContainer}>
+            <View style={styles.metaRow}>
+              <View style={styles.meta}>
+                <View style={styles.dot} />
+                <Text style={styles.metaText}>{item.size}</Text>
+              </View>
 
-            <View style={styles.meta}>
-              <Icon name="comment-outline" size={14} color={theme.c.subtext} />
-              <Text style={styles.metaText}>
-                {count} {count === 1 ? 'comment' : 'comments'}
-              </Text>
-            </View>
+              <View style={styles.meta}>
+                <Icon name="comment-outline" size={14} color={theme.c.subtext} />
+                <Text style={styles.metaText}>
+                  {count} {count === 1 ? 'comment' : 'comments'}
+                </Text>
+              </View>
 
-            <View style={styles.meta}>
-              <Icon name="calendar-clock" size={14} color={theme.c.subtext} />
-              <Text style={styles.metaText}>{updatedAgo || "--"}</Text>
+              <View style={styles.meta}>
+                <Icon name="calendar-clock" size={14} color={theme.c.subtext} />
+                <Text style={styles.metaText}>{updatedAgo || "--"}</Text>
+              </View>
             </View>
+            <Pressable style={styles.primaryBtn} onPress={() => openVideo(item)}>
+              <Text style={styles.primaryBtnText}>Open</Text>
+            </Pressable>
           </View>
 
-          <View style={styles.ctaRow}>
+          {/* <View style={styles.ctaRow}>
             <View style={styles.badge}>
               <Text style={styles.badgeText}>{item.tag}</Text>
             </View>
@@ -100,7 +105,7 @@ export default function HomeScreen({ navigation }) {
             <Pressable style={styles.primaryBtn} onPress={() => openVideo(item)}>
               <Text style={styles.primaryBtnText}>Open</Text>
             </Pressable>
-          </View>
+          </View> */}
         </View>
       </Pressable>
     );
@@ -134,6 +139,7 @@ const styles = StyleSheet.create({
   cardBody: { padding: 12, gap: 8 },
   title: { color: theme.c.text, fontWeight: '700', fontSize: 14 },
 
+  metaRowContainer: { flexDirection: 'row', alignItems: 'center', gap: 12, justifyContent: "space-between" },
   metaRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   meta: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   metaText: { color: theme.c.subtext, fontSize: 12 },
